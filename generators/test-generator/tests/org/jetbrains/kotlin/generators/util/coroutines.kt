@@ -53,23 +53,38 @@ fun createCommonCoroutinesTestMethodModels(
     checkFilenameStartsLowerCase: Boolean?,
     targetBackend: TargetBackend,
     skipIgnored: Boolean
-): Collection<MethodModel> = listOf(
-    CoroutinesTestModel(
-        rootDir,
-        file,
-        filenamePattern,
-        checkFilenameStartsLowerCase,
-        targetBackend,
-        skipIgnored,
-        true
-    ),
-    CoroutinesTestModel(
-        rootDir,
-        file,
-        filenamePattern,
-        checkFilenameStartsLowerCase,
-        targetBackend,
-        skipIgnored,
-        false
-    )
-)
+): Collection<MethodModel> {
+    return if (targetBackend == TargetBackend.JS_IR)
+        listOf(
+            CoroutinesTestModel(
+                rootDir,
+                file,
+                filenamePattern,
+                checkFilenameStartsLowerCase,
+                targetBackend,
+                skipIgnored,
+                true
+            )
+        )
+    else
+        listOf(
+            CoroutinesTestModel(
+                rootDir,
+                file,
+                filenamePattern,
+                checkFilenameStartsLowerCase,
+                targetBackend,
+                skipIgnored,
+                true
+            ),
+            CoroutinesTestModel(
+                rootDir,
+                file,
+                filenamePattern,
+                checkFilenameStartsLowerCase,
+                targetBackend,
+                skipIgnored,
+                false
+            )
+        )
+}
