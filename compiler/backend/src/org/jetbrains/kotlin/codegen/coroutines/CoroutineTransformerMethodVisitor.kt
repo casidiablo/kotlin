@@ -189,6 +189,25 @@ class CoroutineTransformerMethodVisitor(
             }
             writeDebugMetadata(methodNode, suspensionPointLabelNodes, spilledToVariableMapping)
         }
+
+        if (!isForNamedFunction) {
+            fixLvtForParameters(methodNode, tableSwitchLabel)
+        }
+    }
+
+    private fun fixLvtForParameters(methodNode: MethodNode, startLabel: LabelNode) {
+        // this
+        fixStartLabelOfLvtRecord(methodNode, startLabel) { it.name == "this" && it.index == continuationIndex }
+        // data/result
+        fixStartLabelOfLvtRecord(methodNode, startLabel) { it.name == languageVersionSettings.dataFieldName() && it.index == dataIndex }
+        // exception
+        if (!languageVersionSettings.isReleaseCoroutines()) {
+            fixStartLabelOfLvtRecord(methodNode, startLabel) { it.name == "exception" && it.index == exceptionIndex }
+        }
+    }
+
+    private fun fixStartLabelOfLvtRecord(methodNode: MethodNode, startLabel: LabelNode, predicate: (LocalVariableNode) -> Boolean) {
+        methodNode.localVariables.find(predicate)?.let { it.start = startLabel }
     }
 
     private fun writeDebugMetadata(
