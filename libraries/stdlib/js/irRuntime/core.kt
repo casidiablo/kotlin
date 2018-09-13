@@ -87,3 +87,6 @@ fun getNumberHashCode(obj: dynamic) = js("""
 
 // TODO: Use getObjectHashCode instead
 fun identityHashCode(obj: dynamic): Int = hashCode(obj)
+
+public inline fun CharSequence.isEmpty(): Boolean = length == 0
+public fun check(value: Boolean) {}

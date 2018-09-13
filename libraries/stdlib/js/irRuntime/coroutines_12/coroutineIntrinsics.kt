@@ -26,7 +26,7 @@ public suspend inline fun <T> suspendCoroutineOrReturn(crossinline block: (Conti
 
 @SinceKotlin("1.2")
 public suspend fun <T> suspendCoroutineUninterceptedOrReturn(block: (Continuation<T>) -> Any?): T =
-    returnIfSuspended<T>(block(getContinuation<T>()))
+    throw NotImplementedError("Implementation of suspendCoroutineUninterceptedOrReturn is intrinsic")
 
 /**
  * Intercept continuation with [ContinuationInterceptor].

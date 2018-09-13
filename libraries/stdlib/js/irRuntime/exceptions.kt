@@ -76,3 +76,5 @@ fun THROW_CCE() {
 fun THROW_NPE() {
     throw NullPointerException()
 }
+
+fun error(s: String): Nothing = throw Error(s, null)

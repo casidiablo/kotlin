@@ -51,6 +51,9 @@ private val runtimeSourcesCommon = listOfKtFilesFrom(
     "libraries/stdlib/common/src/kotlin/JsAnnotationsH.kt",
 
     "libraries/stdlib/js/irRuntime",
+
+    "libraries/stdlib/js/src/kotlin/io.kt",
+
     BasicBoxTest.COMMON_FILES_DIR_PATH
 )
 
