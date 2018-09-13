@@ -13,6 +13,9 @@ import org.jetbrains.kotlin.backend.common.ir.Ir
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.js.JsDeclarationFactory
 import org.jetbrains.kotlin.builtins.PrimitiveType
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -44,8 +47,9 @@ class JsIrBackendContext(
     val module: ModuleDescriptor,
     override val irBuiltIns: IrBuiltIns,
     val symbolTable: SymbolTable,
-    irModuleFragment: IrModuleFragment
-) : CommonBackendContext {
+    irModuleFragment: IrModuleFragment,
+    val configuration: CompilerConfiguration
+    ) : CommonBackendContext {
 
     override val builtIns = module.builtIns
 
@@ -74,9 +78,14 @@ class JsIrBackendContext(
     private val internalPackageName = FqName("kotlin.js")
     private val internalPackage = module.getPackage(internalPackageName)
 
+    private val releaseCoroutineEnabled =
+        configuration.languageVersionSettings.getFeatureSupport(LanguageFeature.ReleaseCoroutines) == LanguageFeature.State.ENABLED
+
     // TODO: replace it with appropriate package name once we migrate to 1.3 coroutines
-    private val coroutinePackageNameSrting_12 = "kotlin.coroutines.experimental"
-    private val coroutinePackageNameSrting_13 = "kotlin.coroutines"
+    private val coroutinePackageNameString_12 = "kotlin.coroutines.experimental"
+    private val coroutinePackageNameString_13 = "kotlin.coroutines"
+    private val coroutinePackageNameString = if (releaseCoroutineEnabled) coroutinePackageNameString_13 else coroutinePackageNameString_12
+//    private val coroutinePackageNameString = coroutinePackageNameString_12
 
     private val INTRINSICS_PACKAGE_NAME = Name.identifier("intrinsics")
     private val COROUTINE_SUSPENDED_NAME = Name.identifier("COROUTINE_SUSPENDED")
@@ -88,7 +97,7 @@ class JsIrBackendContext(
     private val CONTINUATION_CONTEXT_GETTER_NAME = Name.special("<get-context>")
     private val CONTINUATION_CONTEXT_PROPERTY_NAME = Name.identifier("context")
 
-    private val coroutinePackageName = FqName(coroutinePackageNameSrting_12)
+    private val coroutinePackageName = FqName(coroutinePackageNameString)
     private val coroutineIntrinsicsPackageName = coroutinePackageName.child(INTRINSICS_PACKAGE_NAME)
 
     private val coroutinePackage = module.getPackage(coroutinePackageName)
@@ -110,14 +119,23 @@ class JsIrBackendContext(
             return contextGetter.symbol
         }
 
+    val coroutineGetContextJs = symbolTable.referenceSimpleFunction(getInternalFunctions("getCoroutineContext").single())
+
+
     val coroutineContextProperty: PropertyDescriptor
         get() {
-            val vars = internalPackage.memberScope.getContributedVariables(
+            val vars = coroutinePackage.memberScope.getContributedVariables(
+//            val vars = internalPackage.memberScope.getContributedVariables(
                 COROUTINE_CONTEXT_NAME,
                 NoLookupLocation.FROM_BACKEND
             )
             return vars.single()
         }
+
+    val coroutineSuspendOrReturnAPI = symbolTable.referenceSimpleFunction(findFunctions(coroutineIntrinsicsPackage.memberScope, "suspendCoroutineUninterceptedOrReturn").single())
+    val coroutineSuspendOrReturn = symbolTable.referenceSimpleFunction(getInternalFunctions("suspendCoroutineUninterceptedOrReturnJS").single())
+//    val coroutineSuspendOrReturn = symbolTable.referenceSimpleFunction(getInternalFunctions("suspendCoroutineUninterceptedOrReturnJS").single())
+//    val coroutineSuspendOrReturn = symbolTable.referenceSimpleFunction(getInternalFunctions("suspendCoroutineUninterceptedOrReturnJS").single())
 
     val intrinsics = JsIntrinsics(irBuiltIns, this)
 
@@ -186,7 +204,7 @@ class JsIrBackendContext(
                 get() = TODO("not implemented")
             override val copyRangeTo: Map<ClassDescriptor, IrSimpleFunctionSymbol>
                 get() = TODO("not implemented")
-            override val coroutineImpl = symbolTable.referenceClass(getInternalClass(COROUTINE_IMPL_NAME.identifier))
+            override val coroutineImpl = symbolTable.referenceClass(findClass(coroutinePackage.memberScope, COROUTINE_IMPL_NAME.identifier))
             override val coroutineSuspendedGetter = symbolTable.referenceSimpleFunction(
                 coroutineIntrinsicsPackage.memberScope.getContributedVariables(COROUTINE_SUSPENDED_NAME, NoLookupLocation.FROM_BACKEND).single().getter!!
             )
@@ -195,7 +213,7 @@ class JsIrBackendContext(
         override fun shouldGenerateHandlerParameterForDefaultBodyFun() = true
     }
 
-    val coroutineImplLabelProperty by lazy { ir.symbols.coroutineImpl.getPropertyDeclaration("label")!! }
+    val coroutineImplLabelProperty by lazy { ir.symbols.coroutineImpl.getPropertyDeclaration("state")!! }
     val coroutineImplResultSymbol by lazy { ir.symbols.coroutineImpl.getPropertyDeclaration("result")!! }
     val coroutineImplExceptionProperty by lazy { ir.symbols.coroutineImpl.getPropertyDeclaration("exception")!! }
     val coroutineImplExceptionStateProperty by lazy { ir.symbols.coroutineImpl.getPropertyDeclaration("exceptionState")!! }

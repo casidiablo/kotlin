@@ -55,7 +55,8 @@ fun compile(
         analysisResult.moduleDescriptor,
         psi2IrContext.irBuiltIns,
         psi2IrContext.symbolTable,
-        moduleFragment
+        moduleFragment,
+        configuration
     )
 
     ExternalDependenciesGenerator(psi2IrContext.moduleDescriptor, psi2IrContext.symbolTable, psi2IrContext.irBuiltIns)
@@ -67,6 +68,8 @@ fun compile(
     }
 
     MoveExternalDeclarationsToSeparatePlace().lower(moduleFragment.files)
+
+    moduleFragment.files.forEach(CoroutineIntrinsicLowering(context)::lower)
 
     context.performInlining(moduleFragment)
 
