@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.test.TargetBackend
 import java.io.File
 
-private val runtimeSources = listOfKtFilesFrom(
+private val runtimeSourcesCommon = listOfKtFilesFrom(
     "libraries/stdlib/js/src/kotlin/core.kt",
     "libraries/stdlib/js/src/kotlin/js.core.kt",
     "libraries/stdlib/js/src/kotlin/jsTypeOf.kt",
@@ -54,8 +54,30 @@ private val runtimeSources = listOfKtFilesFrom(
     BasicBoxTest.COMMON_FILES_DIR_PATH
 )
 
+
+private val coroutine12Files = listOfKtFilesFrom(
+    "libraries/stdlib/js/irRuntime/coroutines_12"
+)
+
+private val coroutine13Files = listOfKtFilesFrom(
+    "libraries/stdlib/coroutines/common",
+    "libraries/stdlib/coroutines/js/src/kotlin/coroutines/SafeContinuationJs.kt",
+    "libraries/stdlib/coroutines/src/kotlin/coroutines/intrinsics/Intrinsics.kt",
+    "libraries/stdlib/coroutines/src/kotlin/SuccessOrFailure.kt",
+    "libraries/stdlib/coroutines/src/kotlin/coroutines/Continuation.kt",
+    "libraries/stdlib/coroutines/src/kotlin/coroutines/ContinuationInterceptor.kt",
+    "libraries/stdlib/coroutines/src/kotlin/coroutines/CoroutineContext.kt",
+    "libraries/stdlib/js/irRuntime/coroutines_13",
+    "libraries/stdlib/js/irRuntime/coroutines_12/coroutineSuspended.kt"
+)
+
 private var runtimeResult: Result? = null
 private val runtimeFile = File("js/js.translator/testData/out/irBox/testRuntime.js")
+
+private val runtimeSources_12 = (runtimeSourcesCommon - coroutine13Files + coroutine12Files).distinct()
+private val runtimeSources_13 = (runtimeSourcesCommon - coroutine12Files + coroutine13Files).distinct()
+
+private val runtimeSources = runtimeSources_13
 
 abstract class BasicIrBoxTest(
     pathToTestDir: String,
@@ -96,7 +118,7 @@ abstract class BasicIrBoxTest(
 
         // TODO: is it right in general? Maybe sometimes we need to compile with newer versions or with additional language features.
         runtimeConfiguration.languageVersionSettings = LanguageVersionSettingsImpl(
-            LanguageVersion.LATEST_STABLE, ApiVersion.LATEST_STABLE,
+            LanguageVersion.LATEST_STABLE,ApiVersion.LATEST_STABLE,
             specificFeatures = mapOf(
                 LanguageFeature.AllowContractsForCustomFunctions to LanguageFeature.State.ENABLED,
                 LanguageFeature.MultiPlatformProjects to LanguageFeature.State.ENABLED
@@ -105,7 +127,6 @@ abstract class BasicIrBoxTest(
                 AnalysisFlag.useExperimental to listOf("kotlin.contracts.ExperimentalContracts", "kotlin.Experimental")
             )
         )
-
 
         if (runtimeResult == null) {
             runtimeResult = compile(config.project, runtimeSources.map(::createPsiFile), runtimeConfiguration)
